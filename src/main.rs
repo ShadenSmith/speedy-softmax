@@ -1,4 +1,4 @@
-use candle_core::{cpu_backend::Map1, Device, Result, Tensor};
+use candle_core::{Device, Result, Tensor};
 use clap::Parser;
 
 use std::time::Instant;
