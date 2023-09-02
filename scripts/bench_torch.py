@@ -30,7 +30,8 @@ def main():
     elapsed = (end - start) / args.num_reps
     elapsed_ms = elapsed * 1000
 
-    bw_gbps = (args.batch_size * args.input_dim * 4) / elapsed / (1024**3)
+    batch_traffic = args.batch_size * args.input_dim * batch.element_size() * 2
+    bw_gbps = batch_traffic / elapsed / (1024**3)
 
     print(f"Softmax batch_size: {args.batch_size} input_dim: {args.input_dim}")
     print(f"Torch-{args.device}: {elapsed_ms:.4f} ms  [{bw_gbps:.2f} GB/s]")
