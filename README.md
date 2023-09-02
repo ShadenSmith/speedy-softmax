@@ -1,1 +1,1 @@
-# fused-softmax-rs
+# speedy-softmax

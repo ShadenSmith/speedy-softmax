@@ -1,5 +1,61 @@
 use candle_core::{Result, Tensor};
 
+use candle_core::CustomOp1;
+
+struct FusedSoftmax {
+    /// The dimension along which to compute the softmax.
+    dim: usize,
+}
+
+fn softmax_f32(input: &[f32], output: &mut [f32]) {
+    todo!()
+}
+
+impl CustomOp1 for FusedSoftmax {
+    fn name(&self) -> &'static str {
+        "fused-softmax"
+    }
+
+    fn cpu_fwd(
+        &self,
+        storage: &candle_core::CpuStorage,
+        layout: &candle_core::Layout,
+    ) -> Result<(candle_core::CpuStorage, candle_core::Shape)> {
+        if self.dim != 1 {
+            candle_core::bail!("only dim=1 is supported");
+        }
+
+        let (dim1, dim2) = layout.shape().dims2()?;
+        let slice = storage.as_slice::<f32>()?;
+        let src = match layout.contiguous_offsets() {
+            None => candle_core::bail!("input has to be contiguous"),
+            Some((o1, o2)) => &slice[o1..o2],
+        };
+
+        let mut sample_buffer = vec![0f32; dim2];
+
+        let mut dst = Vec::with_capacity(dim1 * dim2);
+        for idx1 in 0..dim1 {
+            let sample = &src[idx1 * dim2..(idx1 + 1) * dim2];
+
+            let sample_max = sample.iter().map(|x| *x).fold(f32::MIN, f32::max);
+
+            let mut denominator = 0f32;
+            sample_buffer
+                .iter_mut()
+                .zip(sample.iter())
+                .for_each(|(numerator, val)| {
+                    *numerator = (val - sample_max).exp();
+                    denominator += *numerator;
+                });
+
+            dst.extend(sample_buffer.iter().map(|x| x / denominator));
+        }
+        let storage = candle_core::WithDType::to_cpu_storage_owned(dst);
+        Ok((storage, layout.shape().clone()))
+    }
+}
+
 /// Applies the softmax function to the input tensor, rescaling the element so that elements on
 /// a slice of fixed index on dimension `dim` are between 0 and 1 and sum to 1.
 ///
@@ -15,13 +71,8 @@ use candle_core::{Result, Tensor};
 ///     ]);
 /// # Ok::<(), candle_core::Error>(())
 /// ```
-pub fn fused_softmax<D: candle_core::shape::Dim>(xs: &Tensor, dim: D) -> Result<Tensor> {
-    let dim = dim.to_index(xs.shape(), "fused-softmax")?;
-    let max = xs.max_keepdim(dim)?;
-    let diff = xs.broadcast_sub(&max)?;
-    let num = diff.exp()?;
-    let den = num.sum_keepdim(dim)?;
-    num.broadcast_div(&den)
+pub fn fused_softmax(xs: &Tensor, dim: usize) -> Result<Tensor> {
+    xs.apply_op1(FusedSoftmax { dim })
 }
 
 #[cfg(test)]
