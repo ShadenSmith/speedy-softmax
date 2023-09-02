@@ -1,4 +1,4 @@
-use candle_core::{Device, Result, Tensor};
+use candle_core::{Result, Tensor};
 
 /// Applies the softmax function to the input tensor, rescaling the element so that elements on
 /// a slice of fixed index on dimension `dim` are between 0 and 1 and sum to 1.
@@ -29,6 +29,7 @@ mod tests {
     use super::*;
 
     use candle_core::test_utils::to_vec2_round;
+    use candle_core::Device;
 
     #[test]
     fn test_fused_softmax() {
