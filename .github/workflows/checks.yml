@@ -20,6 +20,8 @@ jobs:
       run: cargo build --verbose 2>&1
     - name: Unit tests
       run: cargo test --verbose 2>&1
+    - name: Build benchmarks
+      run: cargo bench --no-run 2>&1
 
   code_quality:
     runs-on: ubuntu-latest
@@ -34,10 +36,3 @@ jobs:
       run: cargo clippy -- -D warnings 2>&1
     - name: Check formatting
       run: cargo fmt -- --check 2>&1
-
-  benchmarks:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Benchmarks
-      run: cargo bench 2>&1
