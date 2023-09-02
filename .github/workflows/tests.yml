@@ -1,4 +1,4 @@
-name: Tests
+name: Checks
 
 on:
   push:
@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  tests:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -21,7 +21,7 @@ jobs:
     - name: Unit tests
       run: cargo test --verbose 2>&1
 
-  quality:
+  code_quality:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
