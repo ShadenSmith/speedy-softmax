@@ -3,7 +3,7 @@ extern crate bencher;
 
 use candle_core::{Device, Tensor};
 use candle_nn;
-use speedy_softmax::fused_softmax;
+use speedy_softmax::softmax;
 
 use bencher::Bencher;
 
@@ -17,7 +17,7 @@ fn gen_batch(batch_size: usize, dim: usize) -> Tensor {
 fn fused(bench: &mut Bencher) {
     let input = gen_batch(BATCH_SIZE, DIM);
 
-    bench.iter(|| fused_softmax(&input, 1).unwrap());
+    bench.iter(|| softmax(&input, 1).unwrap());
 
     bench.bytes = (BATCH_SIZE * DIM * 4) as u64;
 }
