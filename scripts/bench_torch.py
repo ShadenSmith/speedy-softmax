@@ -1,18 +1,19 @@
-
 import torch
 import argparse
 import time
 
-def parse_args():
-    parser = argparse.ArgumentParser(description='PyTorch Softmax Benchmark')
 
-    parser.add_argument('--batch-size', type=int, default=128)
-    parser.add_argument('--input-dim', type=int, default=1024)
-    parser.add_argument('--num-reps', type=int, default=1000)
-    parser.add_argument('--device', type=str, default='cpu')
+def parse_args():
+    parser = argparse.ArgumentParser(description="PyTorch Softmax Benchmark")
+
+    parser.add_argument("--batch-size", type=int, default=128)
+    parser.add_argument("--input-dim", type=int, default=1024)
+    parser.add_argument("--num-reps", type=int, default=1000)
+    parser.add_argument("--device", type=str, default="cpu")
 
     args = parser.parse_args()
     return args
+
 
 def main():
     args = parse_args()
@@ -30,7 +31,6 @@ def main():
 
     print(f"Softmax: hidden: {args.input_dim}, batch: {args.batch_size}")
     print(f"Torch-{args.device}: {elapsed_ms:.4f} ms")
-
 
 
 if __name__ == "__main__":
