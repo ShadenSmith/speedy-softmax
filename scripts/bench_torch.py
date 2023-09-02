@@ -25,15 +25,16 @@ def main():
     start = time.perf_counter()
     for _ in range(args.num_reps):
         out = softmax(batch)
-    _ = out.sum().item() # force device sync
+    _ = out.sum().item()  # force device sync
     end = time.perf_counter()
     elapsed = (end - start) / args.num_reps
     elapsed_ms = elapsed * 1000
 
-    bw_gbps = (args.batch_size * args.input_dim * 4) / elapsed / (1024 ** 3)
+    bw_gbps = (args.batch_size * args.input_dim * 4) / elapsed / (1024**3)
 
     print(f"Softmax batch_size: {args.batch_size} input_dim: {args.input_dim}")
     print(f"Torch-{args.device}: {elapsed_ms:.4f} ms  [{bw_gbps:.2f} GB/s]")
+
 
 if __name__ == "__main__":
     main()
