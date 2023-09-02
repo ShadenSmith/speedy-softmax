@@ -21,10 +21,6 @@ pub(crate) fn fused_softmax(xs: &Tensor, dim: usize) -> Result<Tensor> {
     xs.apply_op1(FusedSoftmax { dim })
 }
 
-fn softmax_f32(input: &[f32], output: &mut [f32]) {
-    todo!()
-}
-
 pub(crate) struct FusedSoftmax {
     /// The dimension along which to compute the softmax.
     pub dim: usize,
@@ -57,7 +53,7 @@ impl CustomOp1 for FusedSoftmax {
         for idx1 in 0..dim1 {
             let sample = &src[idx1 * dim2..(idx1 + 1) * dim2];
 
-            let sample_max = sample.iter().map(|x| *x).fold(f32::MIN, f32::max);
+            let sample_max = sample.iter().copied().fold(f32::MIN, f32::max);
 
             let mut denominator = 0f32;
             sample_buffer
