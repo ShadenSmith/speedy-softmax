@@ -9,12 +9,12 @@ candle-nn = { version = "0.2.0" }
 clap = { version = "4.4.2", features = ["derive"] }
 
 [dev-dependencies]
-bencher = "0.1.5"
+criterion = "0.5.1"
 
 [features]
 accelerate = ["candle-core/accelerate", "candle-nn/accelerate"]
 mkl = ["candle-core/mkl", "candle-nn/mkl"]
 
 [[bench]]
-name = "softmax"
+name = "bench_softmax"
 harness = false

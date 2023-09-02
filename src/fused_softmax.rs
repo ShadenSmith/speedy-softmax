@@ -17,7 +17,7 @@ use candle_core::CustomOp1;
 ///     ]);
 /// # Ok::<(), candle_core::Error>(())
 /// ```
-pub(crate) fn fused_softmax(xs: &Tensor, dim: usize) -> Result<Tensor> {
+pub fn softmax(xs: &Tensor, dim: usize) -> Result<Tensor> {
     xs.apply_op1(FusedSoftmax { dim })
 }
 
@@ -82,10 +82,8 @@ mod tests {
     fn test_fused_softmax() {
         let input = Tensor::rand(-1.0f32, 1.0f32, &[6, 34], &Device::Cpu).unwrap();
 
-        let op = FusedSoftmax { dim: 1 };
-
         let base_output = candle_nn::ops::softmax(&input, 1).unwrap();
-        let test_output = input.apply_op1(op).unwrap();
+        let test_output = softmax(&input, 1).unwrap();
 
         assert_eq!(
             to_vec2_round(&base_output, 4).unwrap(),
