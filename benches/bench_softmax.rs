@@ -9,10 +9,10 @@ const DIM: usize = 512;
 fn bench_softmax(c: &mut Criterion) {
     let batch = Tensor::rand(0f32, 1f32, &[BATCH_SIZE, DIM], &Device::Cpu).unwrap();
 
-    let batch_bytes = batch.elem_count() * batch.dtype().size_in_bytes();
+    let op_bytes = batch.elem_count() * batch.dtype().size_in_bytes() * 2;
 
     let mut group = c.benchmark_group("softmax");
-    group.throughput(Throughput::Bytes(batch_bytes as u64));
+    group.throughput(Throughput::Bytes(op_bytes as u64));
     group.bench_function("candle", |b| {
         b.iter(|| candle_nn::ops::softmax(&batch, 1).unwrap())
     });
