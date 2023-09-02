@@ -52,7 +52,6 @@ fn main() -> Result<()> {
     );
     println!("Base: {:.4} ms", base_time * 1000.0);
     println!("Fused: {:.4} ms", fused_time * 1000.0);
-    println!("Speedup: {:.2}x", base_time / fused_time);
 
     Ok(())
 }
