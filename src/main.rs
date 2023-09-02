@@ -7,15 +7,15 @@ use speedy_softmax::fused_softmax;
 
 #[derive(Parser, Debug)]
 struct Args {
-    #[arg(default_value_t = 128)]
+    #[arg(long, short, default_value_t = 128)]
     /// Batch size of the input.
     batch_size: usize,
 
-    #[arg(default_value_t = 1024)]
+    #[arg(long, short, default_value_t = 1024)]
     /// Number of input features.
     hidden_dim: usize,
 
-    #[arg(default_value_t = 1000)]
+    #[arg(long, short, default_value_t = 1000)]
     /// Number of times to repeat the benchmark.
     reps: usize,
 }

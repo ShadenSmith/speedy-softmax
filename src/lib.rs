@@ -7,6 +7,10 @@ struct FusedSoftmax {
     dim: usize,
 }
 
+fn softmax_f32(input: &[f32], output: &mut [f32]) {
+    todo!()
+}
+
 impl CustomOp1 for FusedSoftmax {
     fn name(&self) -> &'static str {
         "fused-softmax"
@@ -17,12 +21,9 @@ impl CustomOp1 for FusedSoftmax {
         storage: &candle_core::CpuStorage,
         layout: &candle_core::Layout,
     ) -> Result<(candle_core::CpuStorage, candle_core::Shape)> {
-        //let dim = dim.to_index(xs.shape(), "fused-softmax")?;
-        //let max = xs.max_keepdim(dim)?;
-        //let diff = xs.broadcast_sub(&max)?;
-        //let num = diff.exp()?;
-        //let den = num.sum_keepdim(dim)?;
-        //num.broadcast_div(&den)
+        if self.dim != 1 {
+            candle_core::bail!("only dim=1 is supported");
+        }
 
         let (dim1, dim2) = layout.shape().dims2()?;
         let slice = storage.as_slice::<f32>()?;
@@ -30,12 +31,25 @@ impl CustomOp1 for FusedSoftmax {
             None => candle_core::bail!("input has to be contiguous"),
             Some((o1, o2)) => &slice[o1..o2],
         };
+
+        let mut sample_buffer = vec![0f32; dim2];
+
         let mut dst = Vec::with_capacity(dim1 * dim2);
         for idx1 in 0..dim1 {
-            let src = &src[idx1 * dim2..(idx1 + 1) * dim2];
-            let variance = src.iter().map(|x| x * x).sum::<f32>();
-            let s_variance = 1f32 / (variance / dim2 as f32 + 1e-4).sqrt();
-            dst.extend(src.iter().map(|x| x * s_variance))
+            let sample = &src[idx1 * dim2..(idx1 + 1) * dim2];
+
+            let sample_max = sample.iter().map(|x| *x).fold(f32::MIN, f32::max);
+
+            let mut denominator = 0f32;
+            sample_buffer
+                .iter_mut()
+                .zip(sample.iter())
+                .for_each(|(numerator, val)| {
+                    *numerator = (val - sample_max).exp();
+                    denominator += *numerator;
+                });
+
+            dst.extend(sample_buffer.iter().map(|x| x / denominator));
         }
         let storage = candle_core::WithDType::to_cpu_storage_owned(dst);
         Ok((storage, layout.shape().clone()))
