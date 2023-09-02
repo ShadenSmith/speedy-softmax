@@ -2,7 +2,7 @@ pub mod fused_softmax;
 
 use candle_core::{Result, Tensor};
 pub fn softmax(xs: &Tensor, dim: usize) -> Result<Tensor> {
-    fused_softmax::fused_softmax(xs, dim)
+    fused_softmax::softmax(xs, dim)
 }
 
 #[cfg(test)]
