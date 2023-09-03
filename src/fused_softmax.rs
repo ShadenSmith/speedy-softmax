@@ -1,16 +1,19 @@
 use candle_core::CustomOp1;
 use candle_core::{Result, Tensor};
 
-pub fn softmax_slice(xs: &[f32], out: &mut [f32]) {
-    let sample_max = xs.iter().copied().fold(f32::MIN, f32::max);
+pub fn softmax_slice(input: &[f32], output: &mut [f32]) {
+    let sample_max = input.iter().copied().fold(f32::MIN, f32::max);
 
     let mut denominator = 0f32;
-    out.iter_mut().zip(xs.iter()).for_each(|(numerator, val)| {
-        *numerator = (val - sample_max).exp();
-        denominator += *numerator;
-    });
+    output
+        .iter_mut()
+        .zip(input.iter())
+        .for_each(|(numerator, val)| {
+            *numerator = (val - sample_max).exp();
+            denominator += *numerator;
+        });
 
-    out.iter_mut().for_each(|x| *x /= denominator);
+    output.iter_mut().for_each(|o| *o /= denominator);
 }
 
 /// Applies the softmax function to the input tensor, rescaling the element so that elements on
