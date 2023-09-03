@@ -1,4 +1,6 @@
-use candle_core::{Device, Tensor};
+use std::ops::Deref;
+
+use candle_core::{Device, Storage, Tensor};
 use speedy_softmax::fused_softmax;
 
 use criterion::*;
@@ -9,7 +11,7 @@ fn bench_exp_f32(c: &mut Criterion) {
     let mut output = vec![1f32; batch_size];
     let op_bytes = output.len() * 4 * 2;
 
-    let mut group = c.benchmark_group("exponential");
+    let mut group = c.benchmark_group("exp_f32");
     group.throughput(Throughput::Bytes(op_bytes as u64));
     group.bench_function("std::f32::exp", |b| {
         b.iter(|| {
@@ -22,7 +24,7 @@ fn bench_exp_f32(c: &mut Criterion) {
     group.finish();
 }
 
-fn bench_softmax_tensor(c: &mut Criterion) {
+fn bench_softmax(c: &mut Criterion) {
     let batch_size: usize = 1024;
     let hidden_dim: usize = 512;
 
@@ -32,14 +34,25 @@ fn bench_softmax_tensor(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("softmax");
     group.throughput(Throughput::Bytes(op_bytes as u64));
+    group.sampling_mode(SamplingMode::Flat);
     group.bench_function("candle", |b| {
         b.iter(|| candle_nn::ops::softmax(&batch, 1).unwrap())
     });
     group.bench_function("fused", |b| {
         b.iter(|| fused_softmax::softmax(&batch, 1).unwrap())
     });
+    group.bench_function("fused_slice", |b| {
+        let (storage, _layout) = batch.storage_and_layout();
+        if let Storage::Cpu(cpu_storage) = storage.deref() {
+            let input = cpu_storage.as_slice::<f32>().unwrap();
+            let mut output = vec![0f32; input.len()];
+            b.iter(|| fused_softmax::softmax_slice(&input, &mut output));
+        } else {
+            panic!("expected CPU tensor")
+        }
+    });
     group.finish();
 }
 
-criterion_group!(benches, bench_exp_f32, bench_softmax_tensor);
+criterion_group!(benches, bench_exp_f32, bench_softmax);
 criterion_main!(benches);
