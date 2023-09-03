@@ -3,7 +3,7 @@ use speedy_softmax::fused_softmax;
 
 use criterion::*;
 
-const BATCH_SIZE: usize = 128;
+const BATCH_SIZE: usize = 1024;
 const DIM: usize = 512;
 
 fn bench_softmax(c: &mut Criterion) {

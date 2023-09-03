@@ -6,8 +6,8 @@ import time
 def parse_args():
     parser = argparse.ArgumentParser(description="PyTorch Softmax Benchmark")
 
-    parser.add_argument("--batch-size", type=int, default=128)
-    parser.add_argument("--input-dim", type=int, default=1024)
+    parser.add_argument("--batch-size", type=int, default=1024)
+    parser.add_argument("--input-dim", type=int, default=512)
     parser.add_argument("--num-reps", type=int, default=1000)
     parser.add_argument("--device", type=str, default="cpu")
 
