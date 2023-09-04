@@ -1,4 +1,4 @@
-use candle_core::{Device, Tensor};
+use candle_core::{Device, Tensor, D};
 use speedy_softmax;
 
 use criterion::*;
@@ -61,10 +61,10 @@ fn bench_softmax(c: &mut Criterion) {
     let mut group = c.benchmark_group("softmax");
     group.throughput(Throughput::Bytes(op_bytes as u64));
     group.bench_function("candle", |b| {
-        b.iter(|| candle_nn::ops::softmax(&batch, 1).unwrap())
+        b.iter(|| candle_nn::ops::softmax(&batch, D::Minus1).unwrap())
     });
     group.bench_function("speedy", |b| {
-        b.iter(|| speedy_softmax::candle::softmax(&batch, 1).unwrap())
+        b.iter(|| speedy_softmax::candle::softmax(&batch, D::Minus1).unwrap())
     });
     group.finish();
 }
