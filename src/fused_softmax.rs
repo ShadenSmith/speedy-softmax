@@ -5,12 +5,12 @@ pub fn softmax_slice(input: &[f32], output: &mut [f32]) {
     let sample_max = input.iter().copied().fold(f32::MIN, f32::max);
 
     let mut denominator = 0f32;
-    output
-        .iter_mut()
-        .zip(input.iter())
-        .for_each(|(numerator, val)| {
-            *numerator = (val - sample_max).exp();
-            denominator += *numerator;
+    input
+        .iter()
+        .zip(output.iter_mut())
+        .for_each(|(in_val, out_val)| {
+            *out_val = (in_val - sample_max).exp();
+            denominator += *out_val;
         });
 
     denominator = 1f32 / denominator;
