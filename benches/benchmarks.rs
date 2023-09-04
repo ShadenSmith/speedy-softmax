@@ -34,22 +34,11 @@ fn bench_softmax(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("softmax");
     group.throughput(Throughput::Bytes(op_bytes as u64));
-    group.sampling_mode(SamplingMode::Flat);
     group.bench_function("candle", |b| {
         b.iter(|| candle_nn::ops::softmax(&batch, 1).unwrap())
     });
-    group.bench_function("fused", |b| {
+    group.bench_function("speedy", |b| {
         b.iter(|| fused_softmax::softmax(&batch, 1).unwrap())
-    });
-    group.bench_function("fused_slice", |b| {
-        let (storage, _layout) = batch.storage_and_layout();
-        if let Storage::Cpu(cpu_storage) = storage.deref() {
-            let input = cpu_storage.as_slice::<f32>().unwrap();
-            let mut output = vec![0f32; input.len()];
-            b.iter(|| fused_softmax::softmax_slice(&input, &mut output));
-        } else {
-            panic!("expected CPU tensor")
-        }
     });
     group.finish();
 }
