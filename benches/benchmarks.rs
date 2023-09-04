@@ -1,6 +1,4 @@
-use std::ops::Deref;
-
-use candle_core::{Device, Storage, Tensor};
+use candle_core::{Device, Tensor};
 use speedy_softmax::fused_softmax;
 
 use criterion::*;
