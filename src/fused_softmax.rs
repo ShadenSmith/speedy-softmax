@@ -13,7 +13,9 @@ pub fn softmax_slice(input: &[f32], output: &mut [f32]) {
             denominator += *numerator;
         });
 
-    output.iter_mut().for_each(|o| *o /= denominator);
+    denominator = 1f32 / denominator;
+
+    output.iter_mut().for_each(|o| *o *= denominator);
 }
 
 /// Applies the softmax function to the input tensor, rescaling the element so that elements on
