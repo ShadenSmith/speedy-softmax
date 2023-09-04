@@ -66,15 +66,16 @@ impl CustomOp1 for FusedSoftmax {
         let mut dst: Vec<f32> = vec![0f32; dim1 * dim2];
         for idx1 in 0..dim1 {
             let sample = &src[idx1 * dim2..(idx1 + 1) * dim2];
+            let out_row = &mut dst[idx1 * dim2..(idx1 + 1) * dim2];
 
-            let mut out_row = &mut dst[idx1 * dim2..(idx1 + 1) * dim2];
-
-            softmax_slice(sample, &mut out_row);
+            softmax_slice(sample, out_row);
         }
         let storage = candle_core::WithDType::to_cpu_storage_owned(dst);
         Ok((storage, layout.shape().clone()))
     }
 }
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
