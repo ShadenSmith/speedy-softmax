@@ -1,6 +1,17 @@
 use candle_core::CustomOp1;
 use candle_core::{Result, Tensor};
 
+#[cfg(not(feature = "fast-math"))]
+fn exp_f32(x: f32) -> f32 {
+    x.exp()
+}
+
+#[cfg(feature = "fast-math")]
+fn exp_f32(x: f32) -> f32 {
+    use fast_math::exp;
+    exp(x)
+}
+
 pub fn softmax_slice(input: &[f32], output: &mut [f32]) {
     let sample_max = input.iter().copied().fold(f32::MIN, f32::max);
 
@@ -9,7 +20,7 @@ pub fn softmax_slice(input: &[f32], output: &mut [f32]) {
         .iter()
         .zip(output.iter_mut())
         .for_each(|(in_val, out_val)| {
-            *out_val = (in_val - sample_max).exp();
+            *out_val = exp_f32(in_val - sample_max);
             denominator += *out_val;
         });
 
