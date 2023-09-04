@@ -7,6 +7,7 @@ edition = "2021"
 candle-core = { version = "0.2.0" }
 candle-nn = { version = "0.2.0" }
 clap = { version = "4.4.2", features = ["derive"] }
+fast-math = { version = "0.1.1", optional = true }
 
 [dev-dependencies]
 criterion = "0.5.1"
@@ -14,6 +15,7 @@ criterion = "0.5.1"
 [features]
 accelerate = ["candle-core/accelerate", "candle-nn/accelerate"]
 mkl = ["candle-core/mkl", "candle-nn/mkl"]
+fast-math = ["dep:fast-math"]
 
 [lib]
 # allows bench args, https://bheisler.github.io/criterion.rs/book/faq.html

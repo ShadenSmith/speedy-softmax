@@ -23,6 +23,16 @@ fn bench_exp_f32(c: &mut Criterion) {
                 .for_each(|(i, o)| *o = i.exp())
         });
     });
+
+    #[cfg(feature = "fast-math")]
+    group.bench_function("fast_math::exp", |b| {
+        b.iter(|| {
+            input
+                .iter()
+                .zip(output.iter_mut())
+                .for_each(|(i, o)| *o = fast_math::exp(*i))
+        });
+    });
     group.finish();
 }
 
