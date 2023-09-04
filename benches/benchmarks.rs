@@ -1,5 +1,5 @@
 use candle_core::{Device, Tensor};
-use speedy_softmax::fused_softmax;
+use speedy_softmax;
 
 use criterion::*;
 
@@ -45,7 +45,7 @@ fn bench_softmax_slice(c: &mut Criterion) {
     let mut group = c.benchmark_group("softmax_slice");
     group.throughput(Throughput::Bytes(op_bytes as u64));
     group.bench_function("fused", |b| {
-        b.iter(|| fused_softmax::softmax_slice(&input, &mut output));
+        b.iter(|| speedy_softmax::fused_softmax::softmax_slice(&input, &mut output));
     });
     group.finish();
 }
@@ -64,7 +64,7 @@ fn bench_softmax(c: &mut Criterion) {
         b.iter(|| candle_nn::ops::softmax(&batch, 1).unwrap())
     });
     group.bench_function("speedy", |b| {
-        b.iter(|| fused_softmax::softmax(&batch, 1).unwrap())
+        b.iter(|| speedy_softmax::candle::softmax(&batch, 1).unwrap())
     });
     group.finish();
 }
