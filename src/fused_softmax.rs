@@ -1,6 +1,22 @@
+use candle_core::CustomOp1;
 use candle_core::{Result, Tensor};
 
-use candle_core::CustomOp1;
+pub fn softmax_slice(input: &[f32], output: &mut [f32]) {
+    let sample_max = input.iter().copied().fold(f32::MIN, f32::max);
+
+    let mut denominator = 0f32;
+    output
+        .iter_mut()
+        .zip(input.iter())
+        .for_each(|(numerator, val)| {
+            *numerator = (val - sample_max).exp();
+            denominator += *numerator;
+        });
+
+    denominator = 1f32 / denominator;
+
+    output.iter_mut().for_each(|o| *o *= denominator);
+}
 
 /// Applies the softmax function to the input tensor, rescaling the element so that elements on
 /// a slice of fixed index on dimension `dim` are between 0 and 1 and sum to 1.
@@ -47,24 +63,12 @@ impl CustomOp1 for FusedSoftmax {
             Some((o1, o2)) => &slice[o1..o2],
         };
 
-        let mut sample_buffer = vec![0f32; dim2];
-
-        let mut dst = Vec::with_capacity(dim1 * dim2);
+        let mut dst: Vec<f32> = vec![0f32; dim1 * dim2];
         for idx1 in 0..dim1 {
             let sample = &src[idx1 * dim2..(idx1 + 1) * dim2];
+            let out_row = &mut dst[idx1 * dim2..(idx1 + 1) * dim2];
 
-            let sample_max = sample.iter().copied().fold(f32::MIN, f32::max);
-
-            let mut denominator = 0f32;
-            sample_buffer
-                .iter_mut()
-                .zip(sample.iter())
-                .for_each(|(numerator, val)| {
-                    *numerator = (val - sample_max).exp();
-                    denominator += *numerator;
-                });
-
-            dst.extend(sample_buffer.iter().map(|x| x / denominator));
+            softmax_slice(sample, out_row);
         }
         let storage = candle_core::WithDType::to_cpu_storage_owned(dst);
         Ok((storage, layout.shape().clone()))
@@ -80,14 +84,14 @@ mod tests {
 
     #[test]
     fn test_fused_softmax() {
-        let input = Tensor::rand(-1.0f32, 1.0f32, &[6, 34], &Device::Cpu).unwrap();
+        let input = Tensor::rand(-1.0f32, 1.0f32, &[6, 10], &Device::Cpu).unwrap();
 
         let base_output = candle_nn::ops::softmax(&input, 1).unwrap();
         let test_output = softmax(&input, 1).unwrap();
 
         assert_eq!(
-            to_vec2_round(&base_output, 4).unwrap(),
-            to_vec2_round(&test_output, 4).unwrap(),
+            to_vec2_round(&base_output, 5).unwrap(),
+            to_vec2_round(&test_output, 5).unwrap(),
         );
     }
 }
