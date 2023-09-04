@@ -1,4 +1,4 @@
-use candle_core::{Device, Tensor};
+use candle_core::{Device, Tensor, D};
 use speedy_softmax;
 
 use criterion::*;
@@ -50,6 +50,27 @@ fn bench_softmax_slice(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_stable_diffusion(c: &mut Criterion) {
+    let batch_size: usize = 92160;
+    let hidden_dim: usize = 9216;
+
+    let batch = Tensor::rand(0f32, 1f32, &[batch_size, hidden_dim], &Device::Cpu).unwrap();
+
+    let op_bytes = batch.elem_count() * batch.dtype().size_in_bytes() * 2;
+
+    let mut group = c.benchmark_group("stable-diffusion");
+    group.sample_size(10);
+    group.sampling_mode(SamplingMode::Flat);
+    group.throughput(Throughput::Bytes(op_bytes as u64));
+    group.bench_function("candle", |b| {
+        b.iter(|| candle_nn::ops::softmax(&batch, D::Minus1).unwrap())
+    });
+    group.bench_function("speedy", |b| {
+        b.iter(|| speedy_softmax::candle::softmax(&batch, D::Minus1).unwrap())
+    });
+    group.finish();
+}
+
 fn bench_softmax(c: &mut Criterion) {
     let batch_size: usize = 1024;
     let hidden_dim: usize = 512;
@@ -61,13 +82,19 @@ fn bench_softmax(c: &mut Criterion) {
     let mut group = c.benchmark_group("softmax");
     group.throughput(Throughput::Bytes(op_bytes as u64));
     group.bench_function("candle", |b| {
-        b.iter(|| candle_nn::ops::softmax(&batch, 1).unwrap())
+        b.iter(|| candle_nn::ops::softmax(&batch, D::Minus1).unwrap())
     });
     group.bench_function("speedy", |b| {
-        b.iter(|| speedy_softmax::candle::softmax(&batch, 1).unwrap())
+        b.iter(|| speedy_softmax::candle::softmax(&batch, D::Minus1).unwrap())
     });
     group.finish();
 }
 
-criterion_group!(benches, bench_exp_f32, bench_softmax_slice, bench_softmax);
+criterion_group!(
+    benches,
+    bench_exp_f32,
+    bench_softmax_slice,
+    bench_softmax,
+    bench_stable_diffusion
+);
 criterion_main!(benches);

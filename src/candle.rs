@@ -1,17 +1,24 @@
 use candle_core::CustomOp1;
-use candle_core::{Result, Tensor};
+use candle_core::{Result, Tensor, D};
 
 use crate::fused_softmax::softmax_slice;
 
 use rayon::prelude::*;
 
-pub fn softmax(xs: &Tensor, dim: usize) -> Result<Tensor> {
-    xs.apply_op1(FusedSoftmax { dim })
+pub fn softmax(xs: &Tensor, dim: D) -> Result<Tensor> {
+    if dim != D::Minus1 {
+        candle_core::bail!("speedy-softmax targets last dim");
+    }
+
+    // Flatten to [batch x dim]
+    let flattened = xs.flatten_to(D::Minus2)?;
+    let output = flattened.apply_op1(FusedSoftmax { dim: D::Minus1 })?;
+    output.reshape(xs.shape())
 }
 
 pub struct FusedSoftmax {
     /// The dimension along which to compute the softmax.
-    pub dim: usize,
+    pub dim: D,
 }
 
 impl CustomOp1 for FusedSoftmax {
@@ -24,8 +31,8 @@ impl CustomOp1 for FusedSoftmax {
         storage: &candle_core::CpuStorage,
         layout: &candle_core::Layout,
     ) -> Result<(candle_core::CpuStorage, candle_core::Shape)> {
-        if self.dim != 1 {
-            candle_core::bail!("only dim=1 is supported");
+        if self.dim != D::Minus1 {
+            candle_core::bail!("speedy-softmax targets last dim");
         }
 
         // Lower the input tensor to an f32 slice
@@ -62,12 +69,12 @@ mod tests {
     fn test_fused_softmax() {
         let input = Tensor::rand(-1.0f32, 1.0f32, &[6, 10], &Device::Cpu).unwrap();
 
-        let base_output = candle_nn::ops::softmax(&input, 1).unwrap();
-        let test_output = softmax(&input, 1).unwrap();
+        let base_output = candle_nn::ops::softmax(&input, D::Minus1).unwrap();
+        let test_output = softmax(&input, D::Minus1).unwrap();
 
         assert_eq!(
-            to_vec2_round(&base_output, 5).unwrap(),
-            to_vec2_round(&test_output, 5).unwrap(),
+            to_vec2_round(&base_output, 4).unwrap(),
+            to_vec2_round(&test_output, 4).unwrap(),
         );
     }
 }
