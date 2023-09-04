@@ -1,5 +1,6 @@
 use candle_core::CustomOp1;
 use candle_core::{Result, Tensor};
+use rayon::prelude::*;
 
 #[cfg(not(feature = "fast-math"))]
 fn exp_f32(x: f32) -> f32 {
@@ -15,7 +16,7 @@ fn exp_f32(x: f32) -> f32 {
 pub fn softmax_slice(input: &[f32], output: &mut [f32]) {
     let sample_max = input.iter().copied().fold(f32::MIN, f32::max);
 
-    let mut denominator = 0f32;
+    let mut denominator = 0.0;
     input
         .iter()
         .zip(output.iter_mut())
@@ -24,7 +25,7 @@ pub fn softmax_slice(input: &[f32], output: &mut [f32]) {
             denominator += *out_val;
         });
 
-    denominator = 1f32 / denominator;
+    denominator = 1.0 / denominator;
 
     output.iter_mut().for_each(|o| *o *= denominator);
 }
@@ -67,21 +68,25 @@ impl CustomOp1 for FusedSoftmax {
             candle_core::bail!("only dim=1 is supported");
         }
 
-        let (dim1, dim2) = layout.shape().dims2()?;
-        let slice = storage.as_slice::<f32>()?;
-        let src = match layout.contiguous_offsets() {
-            None => candle_core::bail!("input has to be contiguous"),
-            Some((o1, o2)) => &slice[o1..o2],
+        // Lower the input tensor to an f32 slice
+        let (batch_size, dim) = layout.shape().dims2()?;
+        let batch = match layout.contiguous_offsets() {
+            None => candle_core::bail!("speedy-softmax input must be contiguous"),
+            Some((start, end)) => {
+                let slice = storage.as_slice::<f32>()?;
+                &slice[start..end]
+            }
         };
 
-        let mut dst: Vec<f32> = vec![0f32; dim1 * dim2];
-        for idx1 in 0..dim1 {
-            let sample = &src[idx1 * dim2..(idx1 + 1) * dim2];
-            let out_row = &mut dst[idx1 * dim2..(idx1 + 1) * dim2];
+        let mut output: Vec<f32> = vec![0f32; batch_size * dim];
 
-            softmax_slice(sample, out_row);
-        }
-        let storage = candle_core::WithDType::to_cpu_storage_owned(dst);
+        // Compute the softmax, threading over the batch dimension
+        output
+            .par_chunks_exact_mut(dim)
+            .zip(batch.par_chunks_exact(dim))
+            .for_each(|(out, inp)| softmax_slice(inp, out));
+
+        let storage = candle_core::WithDType::to_cpu_storage_owned(output);
         Ok((storage, layout.shape().clone()))
     }
 }
