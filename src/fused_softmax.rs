@@ -80,6 +80,7 @@ impl CustomOp1 for FusedSoftmax {
 
         let mut output: Vec<f32> = vec![0f32; batch_size * dim];
 
+        // Compute the softmax, threading over the batch dimension
         output
             .par_chunks_exact_mut(dim)
             .zip(batch.par_chunks_exact(dim))
